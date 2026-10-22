@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>3-SUM — step by step</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f2f2;color:#222;font-family:Arial,sans-serif}main{max-width:1600px;margin:auto}svg{display:block;width:100%;height:auto}svg text{font-family:Arial,sans-serif}svg .mono{white-space:pre;font-family:Consolas,'Liberation Mono',monospace}.controls{padding:14px 24px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;background:#fff}button,select{font:inherit;padding:10px 18px;border:1px solid #aaa;border-radius:4px;background:white;color:#222}button:disabled{opacity:.4}button:focus-visible,select:focus-visible{outline:3px solid #2465a5}#play{background:#8d3123;color:white;border-color:#8d3123}.hint{text-align:center;padding:8px;font-size:14px;color:#555}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+<main><svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Step-by-step trace of the brute-force 3-SUM algorithm"></svg>
+<div class="controls"><button id="start">Restart</button><button id="back">Back</button><button id="play">Play</button><button id="next">Next step</button><label>Speed <select id="speed"><option value="4200">Slow</option><option value="2800" selected>Normal</option><option value="1400">Fast</option></select></label><span id="position" aria-live="polite"></span></div>
+<div class="hint">Keyboard: ← / → step backwards / forwards · Space plays or pauses</div></main>
+<script>
+const a=[-3,-1,0,1,2],triples=[];
+for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)for(let k=j+1;k<a.length;k++)triples.push({i,j,k,sum:a[i]+a[j]+a[k]});
+// Snapshots follow every statement, loop binding and loop-exhaustion event.
+// Exhausted Python for-loops retain their last bound value; never assign n.
+const states=[];
+const local={n:null,count:null,i:null,j:null,k:null,checked:0,found:[],live:[],sum:null,result:null};
+function emit(line,caption,extra={}){states.push(JSON.parse(JSON.stringify({...local,line,caption,...extra})));}
+emit(0,'Call count_three_sum(a). Only the input a is defined.');
+local.n=a.length;emit(1,'Evaluate len(a), then assign n = 5.');
+local.count=0;emit(2,'Initialise count = 0. The loop variables are not yet defined.');
+emit(3,'Create range(n): i will take the values 0, 1, 2, 3, 4.');
+for(let i=0;i<local.n;i++){
+ local.i=i;local.live=['i'];local.sum=null;local.result=null;
+ emit(3,`Assign i = ${i}${i===0?' for the first outer-loop iteration':'; begin the next outer-loop iteration'}.`);
+ emit(4,`Create range(i + 1, n) = range(${i+1}, 5)${i+1===5?' — empty.':'.'}`);
+ for(let j=i+1;j<local.n;j++){
+  local.j=j;local.live=['i','j'];local.sum=null;local.result=null;
+  emit(4,`Assign j = ${j}. Keep i = ${i}.`);
+  emit(5,`Create range(j + 1, n) = range(${j+1}, 5)${j+1===5?' — empty.':'.'}`);
+  for(let k=j+1;k<local.n;k++){
+   local.k=k;local.live=['i','j','k'];local.sum=null;local.result=null;
+   emit(5,`Assign k = ${k}. Keep i = ${i} and j = ${j}.`);
+   local.sum=a[i]+a[j]+a[k];
+   emit(6,`Read a[${i}], a[${j}], a[${k}] and add them: the sum is ${local.sum}.`);
+   local.result=local.sum===0;local.checked++;
+   emit(6,local.result?'Compare the sum with zero: True. Enter the if body.':'Compare the sum with zero: False. Skip count += 1.');
+   if(local.result){local.count++;local.found.push([a[i],a[j],a[k]]);emit(7,`Execute count += 1. Count is now ${local.count}.`);}
+  }
+  local.live=['i','j'];local.sum=null;local.result=null;
+  emit(5,`The k range is exhausted. Leave the innermost loop; k keeps its last value.`);
+ }
+ local.live=['i'];local.sum=null;local.result=null;
+ emit(4,'The j range is exhausted. Leave the middle loop; j keeps its last value.');
+}
+local.live=[];emit(3,'The i range is exhausted. All loops have finished.');
+emit(8,'Return count = 2. All 10 triples have been checked.',{kind:'done'});
+let step=0,timer=null;const stage=document.getElementById('stage');
+const colors=['#2465a5','#ad5311','#704ca5'];
+function text(x,y,s,size=28,fill='#222',extra=''){s=String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');return `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" ${extra}>${s}</text>`}
+function rect(x,y,w,h,fill,stroke='none',r=0){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}" stroke="${stroke}"/>`}
+function draw(){
+ const s=states[step],done=s.kind==='done',checked=s.checked;
+ const found=s.found,match=s.result===true;
+ let out=rect(0,0,1600,900,'#f2f2f2')+rect(0,0,1600,102,'#8d3123')+text(60,67,'3-SUM: check every triple',42,'#fff');
+ out+=text(60,150,'Distinct integers · indices satisfy i < j < k',25,'#555');
+ const lines=['def count_three_sum(a):','    n = len(a)','    count = 0','    for i in range(n):','        for j in range(i + 1, n):','            for k in range(j + 1, n):','                if a[i] + a[j] + a[k] == 0:','                    count += 1','    return count'];
+ const highlight=s.line;
+ lines.forEach((line,n)=>{if(n===highlight)out+=rect(42,198+n*48,770,46,'#e5dfd8');out+=text(58,230+n*48,line,24,n===highlight?'#8d3123':'#333','class="mono"');});
+ const xs=a.map((_,n)=>885+n*135),y=315;
+ a.forEach((v,n)=>{const which=['i','j','k'].findIndex(name=>s.live.includes(name)&&s[name]===n);out+=rect(xs[n],y,108,106,which>=0?['#e1ecf6','#fae8d9','#ece3f6'][which]:'#fff','#ccc',5);out+=text(xs[n]+54,y+68,v,44,'#222','text-anchor="middle" class="mono"');out+=text(xs[n]+54,y+143,n,24,'#666','text-anchor="middle"');if(which>=0){out+=text(xs[n]+54,y-35,['i','j','k'][which],32,colors[which],'text-anchor="middle" font-weight="bold"');out+=`<path d="M ${xs[n]+54} ${y-24} v 15" stroke="${colors[which]}" stroke-width="3"/>`;}});
+ out+=text(885,492,'Sum',24,'#555');
+ const equation=done?'All triples checked':s.sum!==null?`${a[s.i]} + (${a[s.j]}) + (${a[s.k]}) = ${s.sum}`:s.live.length===3?`${a[s.i]} + (${a[s.j]}) + (${a[s.k]}) = ?`:'—';
+ out+=text(885,548,equation,34,match?'#24723e':'#222','class="mono"');
+ out+=text(885,603,s.result===null?'':`sum == 0: ${s.result?'True':'False'}`,27,match?'#24723e':'#555');
+ out+=text(885,695,`Triples checked: ${checked} / 10`,28)+text(885,745,`count: ${s.count===null?'not defined':s.count}`,28);
+ out+=text(885,800,found.map(t=>`(${t.join(', ')})`).join('   '),23,'#24723e','class="mono"');
+ out+=text(60,715,`n = ${s.n===null?'—':s.n}     i = ${s.i===null?'—':s.i}     j = ${s.j===null?'—':s.j}     k = ${s.k===null?'—':s.k}`,25,'#333','class="mono"');
+ out+=text(60,760,'— = not defined yet',21,'#666');
+ out+=text(60,795,'Pointers show the current loop; values persist after loop exit.',20,'#666');
+ out+=rect(0,838,1600,62,'#e5e1dd')+text(35,878,s.caption,24);
+ stage.innerHTML=out;document.getElementById('position').textContent=`Step ${step+1} / ${states.length}`;
+ document.getElementById('back').disabled=step===0;document.getElementById('next').disabled=step===states.length-1;
+}
+function stop(){clearTimeout(timer);timer=null;document.getElementById('play').textContent='Play';}
+function tick(){if(step===states.length-1){stop();return}step++;draw();timer=setTimeout(tick,Number(document.getElementById('speed').value));}
+function play(){if(timer){stop();return}if(step===states.length-1)step=0;draw();document.getElementById('play').textContent='Pause';timer=setTimeout(tick,Number(document.getElementById('speed').value));}
+document.getElementById('play').onclick=play;
+document.getElementById('start').onclick=()=>{stop();step=0;draw()};
+document.getElementById('next').onclick=()=>{stop();step=Math.min(step+1,states.length-1);draw()};
+document.getElementById('back').onclick=()=>{stop();step=Math.max(step-1,0);draw()};
+document.getElementById('speed').onchange=()=>{if(timer){stop();play()}};
+document.addEventListener('keydown',e=>{if(e.target.matches('select,button'))return;if(e.code==='Space'){e.preventDefault();play()}if(e.key==='ArrowRight')document.getElementById('next').click();if(e.key==='ArrowLeft')document.getElementById('back').click()});
+window.setStep=n=>{stop();step=Math.max(0,Math.min(states.length-1,n));draw();return {step,state:states[step],total:states.length}};window.trace={a,triples,states};draw();
+</script></html>
